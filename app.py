@@ -14,6 +14,12 @@ GOOGLE_API_KEY = "AIzaSyBbEpOFAfxkZqui0O5UKHDE8aGW2P4EF6A"
 
 genai.configure(api_key=GOOGLE_API_KEY)
 
+input_prompt = """
+               You are an expert in creating detailed plans for achieving goals on the basis of provided deadline and capabilities of the individual.
+               You will receive input image of a syllabus, users capabilities in terms of text and a deadline alongwith how much time they can commit per day.
+               Generate a detailed personalized plan on the basis of all this information so that the user can achieve their goal efficiently and effectively in the given time frame.
+               The plan should define which topic should be done when and how much time should be spent on each topic. You should account for the complexity of the topics and make the plan accordinly.
+               """
 ## Function to load OpenAI model and get respones
 
 def get_gemini_response(input,image,prompt):
@@ -41,40 +47,35 @@ def input_image_setup(uploaded_file):
         raise FileNotFoundError("No file uploaded")
 
 
-##initialize our streamlit app
+# Set the page configuration
+st.set_page_config(page_title="Code Generator", page_icon=":guardsman:", layout="wide")
 
-st.set_page_config(page_title="Code Generator")
+# Initialize the app
+header = st.container()
+with header:
+    st.markdown("<h1 style='text-align: center; font-size: 40px; padding: 20px 0;'>Personalized Plan Generator</h1>", unsafe_allow_html=True)
 
-st.header("Personalized Plan Generator")
-deadline=st.text_input("Deadline: ")
-hours = st.text_input("How many hours can you commit per day:")
-marks = st.text_input("How many marks you want achieved last semester:")
-uploaded_file = st.file_uploader("Choose an image...", type=["jpg", "jpeg", "png"])
-image=""   
+col1, col2 = st.columns(2)
+
+with col1:
+    deadline = st.number_input("Deadline (in days):", min_value=1, value=1, step=1, format="%d")
+    hours = st.number_input("Hours per day:", min_value=1, value=1, step=1, format="%d")
+
+with col2:
+    caps = st.text_area("Enter your capabilities:")
+
+uploaded_file = st.file_uploader("Upload syllabus image:", type=["jpg", "jpeg", "png"])
+
 if uploaded_file is not None:
     image = Image.open(uploaded_file)
-    st.image(image, caption="Uploaded Image.", use_column_width=True)
-# uploaded_mark = st.file_uploader("Upload marksheet...", type=["jpg", "jpeg", "png"])
-# marksheet=""   
-# if uploaded_mark is not None:
-#     marksheet = Image.open(uploaded_mark)
-#     st.image(image, caption="Uploaded Image.", use_column_width=True)
+    st.image(image, caption="Uploaded syllabus image.", use_column_width=True)
 
-submit=st.button("Generate plan")
-
-input_prompt = """
-               You are an expert in creating detailed plans for achieving goals on the basis of provided deadline and capabilities of the individual.
-               You will receive input image of a syllabus, users capabilities in terms of text and a deadline alongwith how much time they can commit per day.
-               Generate a detailed personalized plan on the basis of all this information so that the user can achieve their goal efficiently and effectively in the given time frame.
-               The plan should define which topic should be done when and how much time should be spent on each topic.
-               """
-
-## If ask button is clicked
-input = "Deadline is {deadline} days and user can commit {hours} hours per day. I got {marks} last semester".format(deadline=deadline,hours=hours, marks=marks)
+# Generate the plan
+submit = st.button("Generate plan", key="generate_plan_btn")
+input = "The deadline is {deadline} days and the user can commit {hours} hours per day. The user's capabilites are {caps}.".format(deadline=deadline, hours=hours, caps=caps)
 if submit:
-    image_data = input_image_setup(uploaded_file)
-    # mark_data = input_image_setup(uploaded_mark)
-    response=get_gemini_response(input_prompt,image_data,input)
-    st.subheader("The detailed plan is")
-    st.write(response)
-    
+    with st.spinner("Generating plan..."):
+        image_data = input_image_setup(uploaded_file)
+        response = get_gemini_response(input_prompt, image_data, input)
+        st.subheader("The detailed plan is")
+        st.write(response)    
